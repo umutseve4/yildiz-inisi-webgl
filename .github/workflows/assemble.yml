@@ -1,0 +1,64 @@
+name: Assemble
+
+# GECICI IS AKISI. Ortam kisiti nedeniyle index.html tek seferde
+# push edilemedi: base64'lenmis tar.gz parcalari birlestirilir, md5
+# dogrulanir, dosyalar acilir. Dogrulama bittikten sonra bu dosya ve
+# .assembly/ klasoru silinir.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parcalari birlestir
+        run: |
+          ls -l .assembly/
+          cat .assembly/part-0.b64 .assembly/part-1.b64 .assembly/part-2.b64 \
+              .assembly/part-3.b64 .assembly/part-4.b64 .assembly/part-5.b64 \
+              .assembly/part-6.b64 .assembly/part-7.b64 | tr -d '\n' > /tmp/b.b64
+          echo "base64 uzunlugu: $(wc -c < /tmp/b.b64)"
+
+      - name: base64 md5 kontrolu
+        run: |
+          A=$(md5sum /tmp/b.b64 | cut -d' ' -f1)
+          E=$(cat .assembly/base64.md5)
+          echo "beklenen $E / gercek $A"
+          [ "$A" = "$E" ] || { echo "::error::base64 md5 uyusmuyor"; exit 1; }
+
+      - name: Coz ve ac
+        run: |
+          base64 -d /tmp/b.b64 > /tmp/b.tgz
+          A=$(md5sum /tmp/b.tgz | cut -d' ' -f1)
+          E=$(cat .assembly/tarball.md5)
+          echo "tarball beklenen $E / gercek $A"
+          [ "$A" = "$E" ] || { echo "::error::tarball md5 uyusmuyor"; exit 1; }
+          tar xzf /tmp/b.tgz -C .
+          ls -l index.html tests/
+
+      - name: index.html md5 ve boyut kapisi
+        run: |
+          A=$(md5sum index.html | cut -d' ' -f1)
+          E=$(cut -d' ' -f1 index.html.md5)
+          B=$(stat -c%s index.html)
+          echo "index.html $B bayt, md5 $A (beklenen $E)"
+          [ "$A" = "$E" ] || { echo "::error::index.html md5 uyusmuyor"; exit 1; }
+          [ "$B" -le 266240 ] || { echo "::error::index.html 260 KiB tavanini asti"; exit 1; }
+
+      - name: Statik testler (montaj sonrasi)
+        run: node tests/qa.mjs
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html index.html.md5 README.md LICENSE package.json \
+                  playwright.config.mjs .gitignore tests/
+          git commit -m "montaj: index.html ve test dosyalari parcalardan birlestirildi (md5 dogrulandi)"
+          git push
