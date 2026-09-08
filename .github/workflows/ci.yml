@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: assertion tabani
         run: |
@@ -49,15 +49,25 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
 
       - name: playwright
         run: |
-          set -euo pipefail
-          npx playwright test --reporter=list 2>&1 | tee pw.log
+          set -uo pipefail
+          set +e
+          npx playwright test --reporter=list > pw.log 2>&1
+          RC=$?
+          set -e
+          tail -n 150 pw.log
+          if [ "$RC" -ne 0 ]; then
+            grep -nE 'Error|error|expect|Timeout|failed|passed|[0-9]+\)' pw.log | head -30 > diag.txt || true
+            while IFS= read -r line; do echo "::error::$line"; done < diag.txt
+            echo "::error::playwright cikis kodu $RC"
+            exit 1
+          fi
           PASSED=$(grep -oE '[0-9]+ passed' pw.log | tail -1 | grep -oE '[0-9]+')
           echo "gecen test: $PASSED"
           if [ "$PASSED" -lt 29 ]; then
@@ -69,5 +79,7 @@ jobs:
         if: failure()
         with:
           name: playwright-trace
-          path: test-results
+          path: |
+            test-results
+            pw.log
           retention-days: 5
