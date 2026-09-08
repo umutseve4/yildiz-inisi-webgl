@@ -1,0 +1,17 @@
+{
+  "name": "yildiz-inisi-webgl",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tek dosyalik, varlik-sifir WebGL kis kayagi oyunu.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "serve": "node server.mjs",
+    "qa": "node tests/qa.mjs",
+    "test:browser": "playwright test",
+    "test": "npm run qa && npm run test:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.47.2"
+  }
+}
