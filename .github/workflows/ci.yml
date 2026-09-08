@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: statik ve mantik denetimi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: assertion tabani
+        run: |
+          set -euo pipefail
+          node tests/qa.mjs | tee qa.log
+          COUNT=$(grep -oE '[0-9]+ assertion' qa.log | grep -oE '[0-9]+')
+          echo "gecen assertion: $COUNT"
+          if [ "$COUNT" -lt 155 ]; then
+            echo "::error::assertion sayisi 155 tabaninin altina dustu ($COUNT). Test silinmis olabilir."
+            exit 1
+          fi
+
+      - name: tek dosya sozlesmesi
+        run: |
+          set -euo pipefail
+          test -f index.html
+          SIZE=$(wc -c < index.html)
+          echo "index.html: $SIZE bayt"
+          [ "$SIZE" -lt 122880 ] || { echo "::error::index.html 120 KB sinirini asti"; exit 1; }
+          ! grep -qE '<(img|link[^>]+stylesheet)' index.html || { echo "::error::harici varlik referansi"; exit 1; }
+          ! grep -q 'http://' index.html || { echo "::error::guvensiz http kaynagi"; exit 1; }
+          grep -q 'three@0.169.0' index.html || { echo "::error::three.js surumu pinlenmemis"; exit 1; }
+          ! ls *.png *.jpg *.glb *.mp3 2>/dev/null | grep . || { echo "::error::depoda ikili varlik var"; exit 1; }
+
+  browser:
+    name: chromium kabul testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+
+      - name: playwright
+        run: |
+          set -euo pipefail
+          npx playwright test --reporter=list 2>&1 | tee pw.log
+          PASSED=$(grep -oE '[0-9]+ passed' pw.log | tail -1 | grep -oE '[0-9]+')
+          echo "gecen test: $PASSED"
+          if [ "$PASSED" -lt 29 ]; then
+            echo "::error::kabul testi sayisi 29 tabaninin altina dustu ($PASSED)."
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-trace
+          path: test-results
+          retention-days: 5
