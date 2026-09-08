@@ -22,11 +22,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: yayin klasorunu hazirla
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp LICENSE _site/LICENSE
+          touch _site/.nojekyll
+          test -f _site/index.html
+          echo "yayinlanan bayt: $(wc -c < _site/index.html)"
+
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
+
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: canli site duman testi
+        run: |
+          set -euo pipefail
+          url="${{ steps.deployment.outputs.page_url }}"
+          echo "hedef: $url"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o page.html -w '%{http_code}' -L "$url" || echo 000)
+            echo "deneme $i -> HTTP $code"
+            if [ "$code" = "200" ]; then break; fi
+            sleep 15
+          done
+          test "$code" = "200"
+          grep -q "Yildiz\|Y.ld.z" page.html || { echo "::error::yayinlanan sayfada oyun basligi yok"; exit 1; }
+          grep -q "three.module.js" page.html || { echo "::error::yayinlanan sayfada three.js importu yok"; exit 1; }
+          echo "canli site dogrulandi: $url"
