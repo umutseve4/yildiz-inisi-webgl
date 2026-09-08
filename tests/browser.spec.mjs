@@ -96,7 +96,7 @@ test("hud hizi km/s gosterir", async ({ page }) => {
 });
 
 test("safak modu secilir", async ({ page }) => {
-  await boot(page);
+  await play(page);
   await page.getByRole("button", { name: "Safak" }).click();
   expect((await snap(page)).mode).toBe("safak");
   await expect(page.locator(".mode[data-mode=safak]")).toHaveAttribute("aria-pressed", "true");
@@ -104,7 +104,7 @@ test("safak modu secilir", async ({ page }) => {
 });
 
 test("tipi modu secilir", async ({ page }) => {
-  await boot(page);
+  await play(page);
   await page.getByRole("button", { name: "Tipi" }).click();
   expect((await snap(page)).mode).toBe("tipi");
 });
