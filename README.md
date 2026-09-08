@@ -2,7 +2,7 @@
 
 **Gece yamacından aşağı in, ağaçlara çarpma, yıldızları topla.** Tarayıcıda açılır, kurulum yok, indirme yok, tek bir `index.html` dosyası.
 
-Canlı bağlantı henüz yok. Pages, depo ayarlarında "GitHub Actions" kaynağına alınmadığı için dağıtım işi düşüyor. Açıldığında ve URL gerçekten 200 döndürüdüğünde buraya doğrulanmış bağlantı gelecek. O zamana kadar oyunu aşağıdaki iki komutla kendi makinende çalıştırabilirsin.
+Canlı bağlantı henüz yok. Pages, depo ayarlarında "GitHub Actions" kaynağına alınmadığı için dağıtım işi düşüyor. Açıldığında ve URL gerçekten 200 döndüğünde buraya doğrulanmış bağlantı gelecek. O zamana kadar oyunu aşağıdaki iki komutla kendi makinende çalıştırabilirsin.
 
 ![Yayin durumu](https://img.shields.io/badge/GitHub%20Pages-yayin%20bekleniyor-8A8F98?style=for-the-badge)
 [![Tek dosya](https://img.shields.io/badge/tek%20dosya-27.873%20bayt-2FD3A7?style=for-the-badge)](index.html)
