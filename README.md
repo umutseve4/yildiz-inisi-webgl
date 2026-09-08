@@ -2,7 +2,9 @@
 
 **Gece yamacından aşağı in, ağaçlara çarpma, yıldızları topla.** Tarayıcıda açılır, kurulum yok, indirme yok, tek bir `index.html` dosyası.
 
-[![Oyna](https://img.shields.io/badge/▶%20Hemen%20oyna-canlı-FF4D4F?style=for-the-badge)](https://umutseve4.github.io/yildiz-inisi-webgl/)
+Canlı bağlantı henüz yok. Pages, depo ayarlarında "GitHub Actions" kaynağına alınmadığı için dağıtım işi düşüyor. Açıldığında ve URL gerçekten 200 döndürüdüğünde buraya doğrulanmış bağlantı gelecek. O zamana kadar oyunu aşağıdaki iki komutla kendi makinende çalıştırabilirsin.
+
+![Yayin durumu](https://img.shields.io/badge/GitHub%20Pages-yayin%20bekleniyor-8A8F98?style=for-the-badge)
 [![Tek dosya](https://img.shields.io/badge/tek%20dosya-27.873%20bayt-2FD3A7?style=for-the-badge)](index.html)
 [![Statik test](https://img.shields.io/badge/statik%20assertion-155-4C8DFF?style=for-the-badge)](tests/qa.mjs)
 [![Tarayıcı testi](https://img.shields.io/badge/Chromium%20kabul%20testi-29-A855F7?style=for-the-badge)](tests/browser.spec.mjs)
@@ -66,20 +68,22 @@ Depoda tek bir görsel, ses veya model dosyası yok. Ağaç bir koni, kaya bir i
 
 | Sayı | Kaynak |
 |---|---|
-| 27.873 baytlık tek dosya | `wc -c index.html`, CI'da 122.880 bayt tavanına karşı denetleniyor |
-| 155 statik assertion | `node tests/qa.mjs` çıktısı, CI 155 tabanının altına düşerse hata veriyor |
-| 29 kabul testi | `npx playwright test`, gerçek Chromium'da SwiftShader WebGL ile, CI 29 tabanını koruyor |
+| 27.873 baytlık tek dosya | `wc -c index.html`, CI'da hem 122.880 bayt tavanına hem bu README'deki rakama karşı denetleniyor |
+| 155 statik assertion | `node tests/qa.mjs` çıktısı, CI 155 tabanının altına düşerse ve README ile uyuşmazsa hata veriyor |
+| 29 kabul testi | `npx playwright test`, gerçek Chromium'da SwiftShader WebGL ile, CI 29 tabanını ve README ile eşitliği koruyor |
 | 3 atmosfer modu | `YI.C.MODES` |
 | 1400 m zorluk doygunluğu | `YI.difficultyAt` |
 
-CI iki işi ayrı koşturuyor: `qa` işi hem assertion tabanını hem tek dosya sözleşmesini (harici varlık yok, `http://` yok, three.js sürümü pinli) denetliyor. `browser` işi Chromium indirip 29 kabul testini gerçekten oynatıyor.
+CI iki işi ayrı koşturuyor. `qa` işi assertion tabanını, tek dosya sözleşmesini (harici varlık yok, `http://` yok, three.js sürümü pinli), README rakamlarının gerçekle eşliğini ve README canlı bağlantı iddia ediyorsa o URL'nin gerçekten 200 döndüğünü denetliyor. `browser` işi Chromium indirip 29 kabul testini gerçekten oynatıyor.
 
 ## 🚧 Neyi iddia etmiyorum
 
+- Site henüz yayında değil. Pages açılana kadar canlı oynanabilirlik iddia etmiyorum.
 - Skor kaydı yok. En iyi puan yalnızca sekme açık kaldığı sürece hafızada duruyor.
 - Ses yok.
 - Mobil dokunmatik kontroller çalışıyor ama asıl hedef klavye. Küçük ekranlarda HUD sıkışabilir.
 - three.js CDN'den yükleniyor, yani çevrimdışı açılmıyor.
+- Yalnızca Chromium'da test edildi. Firefox ve WebKit için kanıtım yok.
 - Çok oyunculu, seviye editörü, kayıt/yükleme gibi özellikler yok. Bu bir oturuşluk bir iniş.
 - FPS ölçümü yapılmadı, o yüzden performans rakamı vermiyorum.
 

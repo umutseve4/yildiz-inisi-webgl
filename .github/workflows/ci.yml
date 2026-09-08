@@ -41,6 +41,31 @@ jobs:
           ! grep -q 'http://' index.html || { echo "::error::guvensiz http kaynagi"; exit 1; }
           grep -q 'three@0.169.0' index.html || { echo "::error::three.js surumu pinlenmemis"; exit 1; }
           ! ls *.png *.jpg *.glb *.mp3 2>/dev/null | grep . || { echo "::error::depoda ikili varlik var"; exit 1; }
+          ! test -e .assembly || { echo "::error::terk edilmis .assembly kalintisi geri gelmis"; exit 1; }
+          ! test -e .github/workflows/assemble.yml || { echo "::error::terk edilmis assemble.yml geri gelmis"; exit 1; }
+
+      - name: README rakam tutarliligi
+        run: |
+          set -euo pipefail
+          SIZE=$(wc -c < index.html)
+          R_SIZE=$(grep -oE 'tek%20dosya-[0-9.]+%20bayt' README.md | sed -E 's/tek%20dosya-([0-9.]+)%20bayt/\1/' | tr -d '.')
+          echo "gercek boyut: $SIZE, README iddiasi: $R_SIZE"
+          [ "$SIZE" = "$R_SIZE" ] || { echo "::error::README boyut iddiasi $R_SIZE, gercek boyut $SIZE"; exit 1; }
+          COUNT=$(node tests/qa.mjs | grep -oE '[0-9]+ assertion' | grep -oE '[0-9]+')
+          R_COUNT=$(grep -oE 'statik%20assertion-[0-9]+' README.md | sed -E 's/.*-//')
+          echo "gercek assertion: $COUNT, README iddiasi: $R_COUNT"
+          [ "$COUNT" = "$R_COUNT" ] || { echo "::error::README assertion iddiasi $R_COUNT, gercek sayi $COUNT"; exit 1; }
+
+      - name: canli baglanti iddiasi dogrulanir
+        run: |
+          set -euo pipefail
+          if grep -q 'umutseve4.github.io/yildiz-inisi-webgl' README.md; then
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' -L https://umutseve4.github.io/yildiz-inisi-webgl/)
+            echo "Pages HTTP kodu: $CODE"
+            [ "$CODE" = "200" ] || { echo "::error::README canli baglanti veriyor ama URL $CODE donuyor"; exit 1; }
+          else
+            echo "README canli baglanti iddia etmiyor, kontrol atlandi"
+          fi
 
   browser:
     name: chromium kabul testleri
@@ -74,6 +99,9 @@ jobs:
             echo "::error::kabul testi sayisi 29 tabaninin altina dustu ($PASSED)."
             exit 1
           fi
+          R_TESTS=$(grep -oE 'Chromium%20kabul%20testi-[0-9]+' README.md | sed -E 's/.*-//')
+          echo "README test iddiasi: $R_TESTS"
+          [ "$PASSED" = "$R_TESTS" ] || { echo "::error::README $R_TESTS test iddia ediyor, gercekte $PASSED gecti"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         if: failure()
