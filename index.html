@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="description" content="Yildiz Inisi: tek dosyalik, varlik-sifir WebGL kis kayagi oyunu. Prosedurel pist, yildiz toplama, uc atmosfer modu." />
+<meta name="theme-color" content="#05070f" />
+<title>Yildiz Inisi. Tek dosyalik WebGL kis kayagi</title>
+<style>
+  :root{
+    --ink:#eaf2ff;
+    --dim:#8fa3c4;
+    --accent:#ff4d4f;
+    --panel:rgba(6,10,20,.72);
+    --edge:rgba(150,180,230,.22);
+    --font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:#05070f;color:var(--ink);font-family:var(--font);
+    overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;
+  }
+  #stage{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+  #hud{
+    position:fixed;inset:0;pointer-events:none;padding:16px;
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+  .card{
+    background:var(--panel);border:1px solid var(--edge);border-radius:12px;
+    padding:10px 14px;backdrop-filter:blur(6px);min-width:96px;
+  }
+  .k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+  #healthTrack{width:110px;height:7px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:8px}
+  #healthBar{height:100%;width:100%;background:var(--accent);transition:width .18s ease}
+  #combo{color:var(--accent)}
+  #modes{display:flex;gap:6px;pointer-events:auto}
+  .mode{
+    font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dim);background:var(--panel);border:1px solid var(--edge);
+    border-radius:999px;padding:7px 12px;cursor:pointer;
+  }
+  .mode[aria-pressed="true"]{color:var(--ink);border-color:var(--accent)}
+  .mode:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  #hint{font-size:11px;color:var(--dim);letter-spacing:.06em}
+  .overlay{
+    position:fixed;inset:0;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(120% 90% at 50% 0%,rgba(10,16,32,.55),rgba(2,4,10,.94));
+    z-index:5;
+  }
+  .overlay[hidden]{display:none}
+  .panel{max-width:520px;text-align:center}
+  .panel h1{margin:0 0 6px;font-size:clamp(28px,6vw,46px);letter-spacing:-.02em}
+  .panel h2{margin:0 0 6px;font-size:clamp(24px,5vw,38px);letter-spacing:-.02em}
+  .panel p{margin:0 0 18px;color:var(--dim);font-size:14px;line-height:1.6}
+  .cta{
+    font:inherit;font-weight:600;font-size:15px;color:#05070f;background:var(--ink);
+    border:0;border-radius:999px;padding:13px 30px;cursor:pointer;
+  }
+  .cta:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .keys{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+  kbd{
+    font:inherit;font-size:11px;color:var(--dim);background:rgba(255,255,255,.06);
+    border:1px solid var(--edge);border-radius:6px;padding:4px 8px;
+  }
+  #stats{display:flex;gap:18px;justify-content:center;margin:0 0 18px}
+  #fallback{position:fixed;inset:0;display:none;place-items:center;padding:32px;text-align:center;z-index:9;background:#05070f}
+  #fallback.on{display:grid}
+  @media (prefers-reduced-motion:reduce){#healthBar{transition:none}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="hud" aria-live="off">
+  <div class="row">
+    <div class="card">
+      <div class="k">Puan</div>
+      <div class="v" id="score">0</div>
+      <div class="k" id="combo">x1</div>
+    </div>
+    <div id="modes" role="group" aria-label="Atmosfer modu">
+      <button class="mode" type="button" data-mode="gece" aria-pressed="true">Gece</button>
+      <button class="mode" type="button" data-mode="safak" aria-pressed="false">Safak</button>
+      <button class="mode" type="button" data-mode="tipi" aria-pressed="false">Tipi</button>
+    </div>
+  </div>
+  <div class="row">
+    <div id="hint">Ok tuslari veya A/D ile don. Bosluk ile zipla. P durdurur, R yeniden baslatir.</div>
+    <div class="card">
+      <div class="k">Hiz</div>
+      <div class="v"><span id="speed">0</span> <span class="k">km/s</span></div>
+      <div id="healthTrack" role="img" aria-label="Kalan can"><div id="healthBar"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="panel">
+    <h1>Yildiz Inisi</h1>
+    <p>Gece yamacindan asagi in. Agaclara ve kayalara carpma, yildizlari topla, kapilardan gec. Uc carpma sonunda inis biter.</p>
+    <button class="cta" id="startBtn" type="button">Inise basla</button>
+    <div class="keys">
+      <kbd>&#8592; &#8594;</kbd><kbd>A / D</kbd><kbd>Bosluk: zipla</kbd><kbd>P: duraklat</kbd><kbd>R: yeniden</kbd>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overOverlay" hidden>
+  <div class="panel">
+    <h2>Inis bitti</h2>
+    <div id="stats">
+      <div><div class="k">Puan</div><div class="v" id="finalScore">0</div></div>
+      <div><div class="k">Mesafe</div><div class="v" id="finalDistance">0</div></div>
+      <div><div class="k">Yildiz</div><div class="v" id="finalStars">0</div></div>
+    </div>
+    <button class="cta" id="againBtn" type="button">Tekrar in</button>
+  </div>
+</div>
+
+<div id="fallback">
+  <div class="panel">
+    <h2>WebGL kapali</h2>
+    <p>Bu tarayicida WebGL baglami acilamadi. Donanim hizlandirmasini acip sayfayi yenileyin.</p>
+  </div>
+</div>
+
+<script>
+/* Yildiz Inisi. Saf oyun mantigi. Render katmanindan bagimsizdir, dogrudan test edilir. */
+(function (global) {
+  "use strict";
+
+  var C = {
+    TRACK_HALF: 22,
+    CHUNK_LEN: 40,
+    VIEW_CHUNKS: 6,
+    BASE_SPEED: 14,
+    MAX_SPEED: 46,
+    ACCEL: 0.62,
+    LATERAL_ACCEL: 52,
+    LATERAL_MAX: 21,
+    LATERAL_FRICTION: 5.5,
+    GRAVITY: -34,
+    JUMP_V: 12.5,
+    MAX_HEALTH: 3,
+    CRASH_SPEED_PENALTY: 0.45,
+    INVULN_TIME: 1.1,
+    MAX_DT: 0.05,
+    R_TREE: 1.55,
+    R_ROCK: 1.65,
+    R_STAR: 2.3,
+    R_GATE: 1.15,
+    STAR_POINTS: 50,
+    GATE_POINTS: 120,
+    MAX_COMBO: 8,
+    MODES: ["gece", "safak", "tipi"]
+  };
+
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function lerp(a, b, t) { return a + (b - a) * clamp(t, 0, 1); }
+
+  /* mulberry32. Deterministik, tohumdan tureyen sayi ureteci. */
+  function makeRng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function hashSeed(str) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < String(str).length; i++) {
+      h ^= String(str).charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  /* Zemin yuksekligi. z ile alcalan yamac uzerine iki sinus dalgasi. */
+  function groundHeight(x, z) {
+    return (
+      -z * 0.075 +
+      Math.sin(z * 0.055) * 1.5 +
+      Math.sin(x * 0.09 + z * 0.021) * 0.9 +
+      Math.cos(x * 0.037 - z * 0.045) * 0.55
+    );
+  }
+
+  function groundSlope(x, z) {
+    var d = 0.5;
+    return (groundHeight(x, z - d) - groundHeight(x, z + d)) / (2 * d);
+  }
+
+  /* Zorluk. 0 ile 1 arasinda, 1400 metrede doyuma ulasir. */
+  function difficultyAt(distance) {
+    return clamp(distance / 1400, 0, 1);
+  }
+
+  function speedCap(distance) {
+    return lerp(C.BASE_SPEED + 10, C.MAX_SPEED, difficultyAt(distance));
+  }
+
+  function generateChunk(seed, index) {
+    var rng = makeRng((hashSeed(seed) ^ Math.imul(index + 1, 0x9E3779B1)) >>> 0);
+    var z0 = -index * C.CHUNK_LEN;
+    var diff = difficultyAt(index * C.CHUNK_LEN);
+    var obstacleCount = index === 0 ? 0 : Math.round(lerp(5, 11, diff));
+    var entities = [];
+    var i, x, z;
+
+    for (i = 0; i < obstacleCount; i++) {
+      x = (rng() * 2 - 1) * (C.TRACK_HALF - 1.5);
+      z = z0 - rng() * C.CHUNK_LEN;
+      entities.push({
+        kind: rng() < 0.68 ? "tree" : "rock",
+        x: x,
+        z: z,
+        scale: 0.8 + rng() * 0.7,
+        id: index * 1000 + i
+      });
+    }
+
+    var starCount = index === 0 ? 1 : 2 + Math.floor(rng() * 3);
+    for (i = 0; i < starCount; i++) {
+      entities.push({
+        kind: "star",
+        x: (rng() * 2 - 1) * (C.TRACK_HALF - 3),
+        z: z0 - rng() * C.CHUNK_LEN,
+        scale: 1,
+        id: index * 1000 + 400 + i
+      });
+    }
+
+    if (index > 0 && index % 3 === 0) {
+      x = (rng() * 2 - 1) * (C.TRACK_HALF - 6);
+      z = z0 - C.CHUNK_LEN * 0.5;
+      entities.push({ kind: "gate", x: x, z: z, scale: 1, id: index * 1000 + 900 });
+    }
+
+    return { index: index, z0: z0, entities: entities };
+  }
+
+  function chunkIndexForZ(z) { return Math.max(0, Math.floor(-z / C.CHUNK_LEN)); }
+
+  function createState(seed, mode) {
+    return {
+      seed: seed == null ? "yildiz" : String(seed),
+      mode: C.MODES.indexOf(mode) >= 0 ? mode : "gece",
+      phase: "ready",
+      time: 0,
+      x: 0,
+      z: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      speed: C.BASE_SPEED,
+      airborne: false,
+      health: C.MAX_HEALTH,
+      invuln: 0,
+      score: 0,
+      combo: 1,
+      stars: 0,
+      gates: 0,
+      crashes: 0,
+      distance: 0,
+      best: 0,
+      taken: Object.create(null),
+      events: []
+    };
+  }
+
+  function setMode(state, mode) {
+    if (C.MODES.indexOf(mode) >= 0) { state.mode = mode; }
+    return state;
+  }
+
+  function start(state) {
+    if (state.phase === "ready" || state.phase === "over") { state.phase = "playing"; }
+    return state;
+  }
+
+  function togglePause(state) {
+    if (state.phase === "playing") { state.phase = "paused"; }
+    else if (state.phase === "paused") { state.phase = "playing"; }
+    return state;
+  }
+
+  function restart(state) {
+    var fresh = createState(state.seed, state.mode);
+    fresh.best = Math.max(state.best, state.score);
+    fresh.phase = "playing";
+    return fresh;
+  }
+
+  function visibleChunks(state) {
+    var base = chunkIndexForZ(state.z);
+    var out = [];
+    for (var i = -1; i < C.VIEW_CHUNKS; i++) {
+      if (base + i >= 0) { out.push(generateChunk(state.seed, base + i)); }
+    }
+    return out;
+  }
+
+  function stepPlayer(state, input, dt) {
+    var d = clamp(dt, 0, C.MAX_DT);
+    var steer = (input && input.right ? 1 : 0) - (input && input.left ? 1 : 0);
+
+    state.vx += steer * C.LATERAL_ACCEL * d;
+    if (steer === 0) { state.vx -= state.vx * clamp(C.LATERAL_FRICTION * d, 0, 1); }
+    state.vx = clamp(state.vx, -C.LATERAL_MAX, C.LATERAL_MAX);
+    state.x = clamp(state.x + state.vx * d, -C.TRACK_HALF, C.TRACK_HALF);
+    if (state.x <= -C.TRACK_HALF || state.x >= C.TRACK_HALF) { state.vx *= -0.35; }
+
+    if (input && input.jump && !state.airborne) {
+      state.airborne = true;
+      state.vy = C.JUMP_V;
+    }
+    if (state.airborne) {
+      state.vy += C.GRAVITY * d;
+      state.y += state.vy * d;
+      if (state.y <= 0) { state.y = 0; state.vy = 0; state.airborne = false; }
+    }
+
+    state.speed = lerp(state.speed, speedCap(state.distance), C.ACCEL * d);
+    state.z -= state.speed * d;
+    state.distance = -state.z;
+    state.time += d;
+    if (state.invuln > 0) { state.invuln = Math.max(0, state.invuln - d); }
+    state.score += state.speed * d * 0.6;
+    return state;
+  }
+
+  function hits(state, e) {
+    var r = e.kind === "star" ? C.R_STAR : (e.kind === "gate" ? C.R_GATE : (e.kind === "rock" ? C.R_ROCK : C.R_TREE));
+    var rr = r * (e.kind === "star" || e.kind === "gate" ? 1 : e.scale);
+    var dx = state.x - e.x;
+    var dz = state.z - e.z;
+    return (dx * dx + dz * dz) <= rr * rr;
+  }
+
+  function collectStar(state, e) {
+    state.taken[e.id] = 1;
+    state.stars += 1;
+    state.combo = Math.min(C.MAX_COMBO, state.combo + 1);
+    state.score += C.STAR_POINTS * state.combo;
+    state.events.push({ type: "star", id: e.id, combo: state.combo });
+    return state;
+  }
+
+  function passGate(state, e) {
+    state.taken[e.id] = 1;
+    state.gates += 1;
+    state.score += C.GATE_POINTS;
+    state.events.push({ type: "gate", id: e.id });
+    return state;
+  }
+
+  function crash(state, e) {
+    state.taken[e.id] = 1;
+    state.crashes += 1;
+    state.health = Math.max(0, state.health - 1);
+    state.combo = 1;
+    state.invuln = C.INVULN_TIME;
+    state.speed = Math.max(C.BASE_SPEED, state.speed * C.CRASH_SPEED_PENALTY);
+    state.events.push({ type: "crash", id: e.id, health: state.health });
+    if (state.health <= 0) {
+      state.phase = "over";
+      state.best = Math.max(state.best, state.score);
+      state.events.push({ type: "over", score: state.score });
+    }
+    return state;
+  }
+
+  function resolveCollisions(state, entities) {
+    for (var i = 0; i < entities.length; i++) {
+      var e = entities[i];
+      if (state.taken[e.id]) { continue; }
+      if (!hits(state, e)) { continue; }
+      if (e.kind === "star") { collectStar(state, e); }
+      else if (e.kind === "gate") { passGate(state, e); }
+      else if (!state.airborne && state.invuln <= 0) { crash(state, e); }
+      if (state.phase === "over") { break; }
+    }
+    return state;
+  }
+
+  function tick(state, input, dt, entities) {
+    if (state.phase !== "playing") { return state; }
+    stepPlayer(state, input, dt);
+    resolveCollisions(state, entities || []);
+    return state;
+  }
+
+  function drainEvents(state) {
+    var out = state.events;
+    state.events = [];
+    return out;
+  }
+
+  global.YI = {
+    C: C, clamp: clamp, lerp: lerp, makeRng: makeRng, hashSeed: hashSeed,
+    groundHeight: groundHeight, groundSlope: groundSlope,
+    difficultyAt: difficultyAt, speedCap: speedCap,
+    generateChunk: generateChunk, chunkIndexForZ: chunkIndexForZ, visibleChunks: visibleChunks,
+    createState: createState, setMode: setMode, start: start, togglePause: togglePause, restart: restart,
+    stepPlayer: stepPlayer, hits: hits, resolveCollisions: resolveCollisions, tick: tick,
+    drainEvents: drainEvents
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.169.0/build/three.module.js"}}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+const YI = window.YI;
+const C = YI.C;
+
+const PALETTE = {
+  gece:  { sky: 0x070b18, fog: 0x0b1226, snow: 0xdfe9ff, tree: 0x123047, light: 0x9fc4ff, density: 0.0165, star: 0xffd66b },
+  safak: { sky: 0x2a2136, fog: 0x50415a, snow: 0xffe6d8, tree: 0x2b2233, light: 0xffb27a, density: 0.0125, star: 0xfff1b8 },
+  tipi:  { sky: 0x9aa8bd, fog: 0xc3cede, snow: 0xf3f7ff, tree: 0x3d4a5c, light: 0xffffff, density: 0.032, star: 0xffe08a }
+};
+
+const el = (id) => document.getElementById(id);
+const ui = {
+  stage: el("stage"), score: el("score"), combo: el("combo"), speed: el("speed"),
+  health: el("healthBar"), start: el("startOverlay"), over: el("overOverlay"),
+  startBtn: el("startBtn"), againBtn: el("againBtn"), finalScore: el("finalScore"),
+  finalDistance: el("finalDistance"), finalStars: el("finalStars"), fallback: el("fallback"),
+  modes: Array.from(document.querySelectorAll(".mode"))
+};
+
+let state = YI.createState("yildiz-inisi", "gece");
+const input = { left: false, right: false, jump: false };
+let frames = 0;
+
+const runtime = {
+  ready: false, webgl: false, three: THREE.REVISION,
+  get state() { return state; },
+  get frames() { return frames; },
+  get mode() { return state.mode; },
+  start: () => { YI.start(state); syncOverlays(); },
+  pause: () => { YI.togglePause(state); },
+  restart: () => { state = YI.restart(state); rebuild(); syncOverlays(); refreshHud(); },
+  setMode: (m) => { applyMode(m); },
+  press: (k, v) => { if (k in input) { input[k] = !!v; } },
+  forceCrash: () => {
+    state.invuln = 0;
+    state.airborne = false;
+    YI.resolveCollisions(state, [{ kind: "tree", x: state.x, z: state.z, scale: 1, id: "forced-" + Math.random() }]);
+    refreshHud();
+  },
+  collectStar: () => {
+    YI.resolveCollisions(state, [{ kind: "star", x: state.x, z: state.z, scale: 1, id: "gift-" + Math.random() }]);
+    refreshHud();
+  }
+};
+window.__yi = runtime;
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+} catch (err) {
+  renderer = null;
+}
+if (!renderer || !renderer.getContext()) {
+  ui.fallback.classList.add("on");
+  runtime.ready = true;
+} else {
+  boot();
+}
+
+function boot() {
+  runtime.webgl = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  ui.stage.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute("aria-label", "Yildiz Inisi oyun sahnesi");
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 600);
+  scene.fog = new THREE.FogExp2(PALETTE.gece.fog, PALETTE.gece.density);
+  scene.background = new THREE.Color(PALETTE.gece.sky);
+
+  const hemi = new THREE.HemisphereLight(0xbcd4ff, 0x24304a, 1.05);
+  scene.add(hemi);
+  const key = new THREE.DirectionalLight(0x9fc4ff, 1.15);
+  key.position.set(-30, 60, 20);
+  scene.add(key);
+
+  /* Yamac. Oyuncuyla birlikte kayan, yukseklik fonksiyonuna gore bukulen tek duzlem. */
+  const SEG = 96;
+  const SPAN = 260;
+  const groundGeo = new THREE.PlaneGeometry(140, SPAN, 48, SEG);
+  groundGeo.rotateX(-Math.PI / 2);
+  const groundMat = new THREE.MeshStandardMaterial({ color: PALETTE.gece.snow, roughness: 0.92, metalness: 0.02, flatShading: true });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  scene.add(ground);
+  const basePos = groundGeo.attributes.position.array.slice();
+
+  function shapeGround(originZ) {
+    const pos = groundGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = basePos[i * 3];
+      const z = basePos[i * 3 + 2] + originZ;
+      pos.array[i * 3 + 1] = YI.groundHeight(x, z) - YI.groundHeight(0, originZ);
+    }
+    pos.needsUpdate = true;
+    groundGeo.computeVertexNormals();
+    ground.position.z = originZ;
+  }
+
+  /* Sinir isaretleri. Pistin iki yani boyunca duran direkler. */
+  const edgeGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.4, 5);
+  const edgeMat = new THREE.MeshStandardMaterial({ color: 0xff4d4f, roughness: 0.6, emissive: 0x3a0e0f });
+  const edges = new THREE.InstancedMesh(edgeGeo, edgeMat, 120);
+  scene.add(edges);
+
+  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.3, 1.6, 5);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2b1d14, roughness: 1 });
+  const coneGeo = new THREE.ConeGeometry(1.35, 4.6, 7);
+  const coneMat = new THREE.MeshStandardMaterial({ color: PALETTE.gece.tree, roughness: 0.85, flatShading: true });
+  const rockGeo = new THREE.IcosahedronGeometry(1.15, 0);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a7386, roughness: 0.95, flatShading: true });
+  const starGeo = new THREE.OctahedronGeometry(0.85, 0);
+  const starMat = new THREE.MeshStandardMaterial({ color: PALETTE.gece.star, emissive: 0x6b4d00, roughness: 0.35 });
+  const postGeo = new THREE.CylinderGeometry(0.14, 0.14, 3.4, 6);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x2fd3a7, emissive: 0x0d4436, roughness: 0.5 });
+
+  const CAP = 220;
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, CAP);
+  const cones = new THREE.InstancedMesh(coneGeo, coneMat, CAP);
+  const rocks = new THREE.InstancedMesh(rockGeo, rockMat, CAP);
+  const stars = new THREE.InstancedMesh(starGeo, starMat, CAP);
+  const posts = new THREE.InstancedMesh(postGeo, postMat, CAP);
+  [trunks, cones, rocks, stars, posts].forEach((m) => { m.frustumCulled = false; scene.add(m); });
+
+  const dummy = new THREE.Object3D();
+  const HIDE = new THREE.Matrix4().makeTranslation(0, -9999, 0);
+  let liveStars = [];
+
+  function place(mesh, list, fn) {
+    for (let i = 0; i < CAP; i++) {
+      if (i < list.length) { fn(list[i], i); mesh.setMatrixAt(i, dummy.matrix); }
+      else { mesh.setMatrixAt(i, HIDE); }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  function rebuildScene() {
+    const chunks = YI.visibleChunks(state);
+    const all = [];
+    chunks.forEach((c) => { c.entities.forEach((e) => all.push(e)); });
+    const trees = all.filter((e) => e.kind === "tree" && !state.taken[e.id]);
+    const rockList = all.filter((e) => e.kind === "rock" && !state.taken[e.id]);
+    liveStars = all.filter((e) => e.kind === "star");
+    const gates = all.filter((e) => e.kind === "gate");
+
+    place(trunks, trees, (e) => {
+      dummy.position.set(e.x, YI.groundHeight(e.x, e.z) + 0.8 * e.scale, e.z);
+      dummy.scale.setScalar(e.scale); dummy.rotation.set(0, e.id % 7, 0); dummy.updateMatrix();
+    });
+    place(cones, trees, (e) => {
+      dummy.position.set(e.x, YI.groundHeight(e.x, e.z) + 3.2 * e.scale, e.z);
+      dummy.scale.setScalar(e.scale); dummy.rotation.set(0, e.id % 5, 0); dummy.updateMatrix();
+    });
+    place(rocks, rockList, (e) => {
+      dummy.position.set(e.x, YI.groundHeight(e.x, e.z) + 0.55 * e.scale, e.z);
+      dummy.scale.set(e.scale, e.scale * 0.72, e.scale); dummy.rotation.set(e.id % 3, e.id % 4, 0); dummy.updateMatrix();
+    });
+    place(posts, gates.flatMap((g) => [{ x: g.x - 4.2, z: g.z }, { x: g.x + 4.2, z: g.z }]), (p) => {
+      dummy.position.set(p.x, YI.groundHeight(p.x, p.z) + 1.7, p.z);
+      dummy.scale.setScalar(1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
+    });
+
+    const gap = [];
+    for (let i = 0; i < 60; i++) {
+      const z = Math.floor(state.z / 6) * 6 - i * 6 + 24;
+      gap.push({ x: -C.TRACK_HALF, z: z }, { x: C.TRACK_HALF, z: z });
+    }
+    place(edges, gap.slice(0, 120), (p) => {
+      dummy.position.set(p.x, YI.groundHeight(p.x, p.z) + 1.2, p.z);
+      dummy.scale.setScalar(1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
+    });
+  }
+
+  function refreshStars(t) {
+    place(stars, liveStars, (e, i) => {
+      const hidden = !!state.taken[e.id];
+      dummy.position.set(e.x, hidden ? -9999 : YI.groundHeight(e.x, e.z) + 1.9 + Math.sin(t * 2 + i) * 0.28, e.z);
+      dummy.rotation.set(0, t * 1.6 + i, 0.4);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+    });
+  }
+
+  /* Kar. Oyuncunun etrafinda donen, sinirlari sarilan parcacik bulutu. */
+  const FLAKES = 2400;
+  const snowGeo = new THREE.BufferGeometry();
+  const snowPos = new Float32Array(FLAKES * 3);
+  for (let i = 0; i < FLAKES; i++) {
+    snowPos[i * 3] = (Math.random() * 2 - 1) * 70;
+    snowPos[i * 3 + 1] = Math.random() * 40;
+    snowPos[i * 3 + 2] = (Math.random() * 2 - 1) * 90;
+  }
+  snowGeo.setAttribute("position", new THREE.BufferAttribute(snowPos, 3));
+  const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.28, transparent: true, opacity: 0.75, depthWrite: false }));
+  scene.add(snow);
+
+  const player = new THREE.Group();
+  const bodyMesh = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.42, 0.95, 4, 10),
+    new THREE.MeshStandardMaterial({ color: 0xff4d4f, roughness: 0.45, emissive: 0x2a0708 })
+  );
+  bodyMesh.position.y = 1.05;
+  const skis = new THREE.Mesh(
+    new THREE.BoxGeometry(1.25, 0.1, 2.6),
+    new THREE.MeshStandardMaterial({ color: 0x101828, roughness: 0.5 })
+  );
+  skis.position.y = 0.16;
+  player.add(bodyMesh, skis);
+  scene.add(player);
+
+  function applyPalette(mode) {
+    const p = PALETTE[mode] || PALETTE.gece;
+    scene.background = new THREE.Color(p.sky);
+    scene.fog.color = new THREE.Color(p.fog);
+    scene.fog.density = p.density;
+    groundMat.color = new THREE.Color(p.snow);
+    coneMat.color = new THREE.Color(p.tree);
+    starMat.color = new THREE.Color(p.star);
+    key.color = new THREE.Color(p.light);
+  }
+
+  window.__yi_applyPalette = applyPalette;
+  rebuildScene();
+  shapeGround(state.z);
+  refreshHud();
+
+  let last = performance.now();
+  let lastChunk = -1;
+
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, C.MAX_DT);
+    last = now;
+    frames++;
+
+    if (state.phase === "playing") {
+      const chunks = YI.visibleChunks(state);
+      const ents = [];
+      chunks.forEach((c) => { c.entities.forEach((e) => ents.push(e)); });
+      YI.tick(state, input, dt, ents);
+      input.jump = false;
+      const events = YI.drainEvents(state);
+      if (events.length) { refreshHud(); }
+      const ci = YI.chunkIndexForZ(state.z);
+      if (ci !== lastChunk) { lastChunk = ci; rebuildScene(); }
+      shapeGround(Math.round(state.z));
+      refreshHud();
+    }
+
+    if (state.phase === "over" && ui.over.hidden) { showOver(); }
+
+    const yBase = YI.groundHeight(state.x, state.z);
+    player.position.set(state.x, yBase + state.y, state.z);
+    player.rotation.z = -YI.clamp(state.vx / C.LATERAL_MAX, -1, 1) * 0.42;
+    player.rotation.x = YI.clamp(YI.groundSlope(state.x, state.z), -0.6, 0.6);
+    bodyMesh.visible = !(state.invuln > 0 && Math.floor(state.invuln * 12) % 2 === 0);
+
+    camera.position.set(
+      state.x * 0.45,
+      yBase + state.y + 4.6,
+      state.z + 11.5
+    );
+    camera.lookAt(state.x * 0.7, yBase - 1.2, state.z - 16);
+
+    snow.position.set(0, 0, Math.round(state.z / 90) * 90);
+    const t = now / 1000;
+    snow.rotation.y = t * 0.02;
+    refreshStars(t);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  runtime.ready = true;
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  window.__yi_rebuild = rebuildScene;
+}
+
+function rebuild() { if (window.__yi_rebuild) { window.__yi_rebuild(); } }
+
+function refreshHud() {
+  ui.score.textContent = String(Math.floor(state.score));
+  ui.combo.textContent = "x" + state.combo;
+  ui.speed.textContent = String(Math.round(state.speed * 3.6));
+  ui.health.style.width = (state.health / C.MAX_HEALTH * 100) + "%";
+}
+
+function syncOverlays() {
+  ui.start.hidden = state.phase !== "ready";
+  ui.over.hidden = state.phase !== "over";
+}
+
+function showOver() {
+  ui.finalScore.textContent = String(Math.floor(state.score));
+  ui.finalDistance.textContent = Math.round(state.distance) + " m";
+  ui.finalStars.textContent = String(state.stars);
+  ui.over.hidden = false;
+}
+
+function applyMode(mode) {
+  YI.setMode(state, mode);
+  ui.modes.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
+  if (window.__yi_applyPalette) { window.__yi_applyPalette(state.mode); }
+}
+
+ui.startBtn.addEventListener("click", () => { YI.start(state); syncOverlays(); });
+ui.againBtn.addEventListener("click", () => { runtime.restart(); });
+ui.modes.forEach((b) => b.addEventListener("click", () => applyMode(b.dataset.mode)));
+
+window.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (k === "arrowleft" || k === "a") { input.left = true; }
+  if (k === "arrowright" || k === "d") { input.right = true; }
+  if (k === " " || k === "spacebar") { input.jump = true; e.preventDefault(); }
+  if (k === "p") { YI.togglePause(state); }
+  if (k === "r") { runtime.restart(); }
+  if (k === "enter" && state.phase === "ready") { YI.start(state); syncOverlays(); }
+});
+window.addEventListener("keyup", (e) => {
+  const k = e.key.toLowerCase();
+  if (k === "arrowleft" || k === "a") { input.left = false; }
+  if (k === "arrowright" || k === "d") { input.right = false; }
+});
+
+window.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button")) { return; }
+  if (state.phase === "ready") { YI.start(state); syncOverlays(); return; }
+  if (e.clientY < window.innerHeight * 0.35) { input.jump = true; return; }
+  if (e.clientX < window.innerWidth / 2) { input.left = true; } else { input.right = true; }
+});
+window.addEventListener("pointerup", () => { input.left = false; input.right = false; });
+</script>
+</body>
+</html>
