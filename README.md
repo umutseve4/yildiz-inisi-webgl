@@ -1,40 +1,40 @@
-# ⛷️ Yıldız İnişi
+# Star Descent
 
-**Gece yamacından aşağı in, ağaçlara çarpma, yıldızları topla.** Tarayıcıda açılır, kurulum yok, indirme yok, tek bir `index.html` dosyası.
+**Ski down the night slope, miss the trees, collect the stars.** It opens in the browser. No install, no download, a single `index.html` file.
 
-[![Hemen oyna](https://img.shields.io/badge/%E2%96%B6%20Hemen%20oyna-canl%C4%B1-FF4D4F?style=for-the-badge)](https://umutseve4.github.io/yildiz-inisi-webgl/)
-[![Tek dosya](https://img.shields.io/badge/tek%20dosya-27.873%20bayt-2FD3A7?style=for-the-badge)](index.html)
-[![Statik test](https://img.shields.io/badge/statik%20assertion-155-4C8DFF?style=for-the-badge)](tests/qa.mjs)
-[![Tarayıcı testi](https://img.shields.io/badge/Chromium%20kabul%20testi-29-A855F7?style=for-the-badge)](tests/browser.spec.mjs)
+[![Play now](https://img.shields.io/badge/%E2%96%B6%20Play%20now-live-FF4D4F?style=for-the-badge)](https://umutseve4.github.io/yildiz-inisi-webgl/)
+[![Single file](https://img.shields.io/badge/single%20file-27%2C873%20bytes-2FD3A7?style=for-the-badge)](index.html)
+[![Static tests](https://img.shields.io/badge/static%20assertions-155-4C8DFF?style=for-the-badge)](tests/qa.mjs)
+[![Browser tests](https://img.shields.io/badge/Chromium%20acceptance-29-A855F7?style=for-the-badge)](tests/browser.spec.mjs)
 [![CI](https://github.com/umutseve4/yildiz-inisi-webgl/actions/workflows/ci.yml/badge.svg)](https://github.com/umutseve4/yildiz-inisi-webgl/actions/workflows/ci.yml)
 [![pages](https://github.com/umutseve4/yildiz-inisi-webgl/actions/workflows/pages.yml/badge.svg)](https://github.com/umutseve4/yildiz-inisi-webgl/actions/workflows/pages.yml)
 
-Yukarıdaki bağlantı süs değil. Her dağıtımdan sonra `pages` iş akışı canlı adrese istek atıp HTTP 200 aldığını, sayfada oyun başlığının ve three.js importunun gerçekten bulunduğunu doğruluyor. `ci` iş akışı da bu README canlı bağlantı iddia ettiği sürece o URL'nin 200 döndüğünü ayrıca denetliyor. Bağlantı ölürse rozet değil, derleme kırılır.
+The link above is not decoration. After every deployment the `pages` workflow requests the live address, checks that it returns HTTP 200, and checks that the game title and the three.js import are really present on the served page. The `ci` workflow separately verifies that the URL returns 200 for as long as this README claims a live link. If the link dies, the build breaks, not just the badge.
 
 ---
 
-## 🎮 30 saniyede ne oluyor
+## What happens in the first 30 seconds
 
-Sayfayı açıyorsun, "İnişe başla" diyorsun ve kayakçı yamaçtan aşağı süzülmeye başlıyor. Pist kendi kendine üretiliyor, yani her metre ilerlediğinde önünde daha önce var olmayan ağaçlar, kayalar, yıldızlar ve kapılar beliriyor. Ok tuşlarıyla sağa sola dönüyorsun, boşluk tuşuyla zıplayıp engelin üstünden aşıyorsun.
+You open the page, press start, and the skier begins to slide down the slope. The course generates itself, so every metre you travel puts trees, rocks, stars and gates in front of you that did not exist a moment earlier. The arrow keys steer, the space bar jumps you over an obstacle.
 
-Yıldız topladıkça kombo çarpanın büyüyor, sekize kadar çıkıyor. Ağaca çarptığında kombo sıfırlanıyor, hızın kesiliyor ve bir can gidiyor. Üç can bitince iniş kapanıyor, puanın ve gittiğin mesafe ekrana geliyor. Aşağı indikçe hız da zorluk da artıyor, 1400 metrede tavana vuruyor.
+Every star you collect raises the combo multiplier, up to eight. Hitting a tree resets the combo, cuts your speed and costs a life. When the third life is gone the run ends and your score and distance appear on screen. Both the speed and the difficulty rise as you descend, and they saturate at 1400 metres.
 
-Üç atmosfer var ve oyun sırasında istediğin an değiştirebiliyorsun: **Gece** (mavi sis, uzak görüş), **Şafak** (turuncu ışık), **Tipi** (yoğun sis, görüş kısa, en zoru).
+There are three atmospheres and you can switch between them mid run: **Night** (blue fog, long sight line), **Dawn** (orange light), **Blizzard** (heavy fog, short sight line, the hardest of the three).
 
-## 🕹️ Kontroller
+## Controls
 
-| Girdi | Ne yapar |
+| Input | What it does |
 |---|---|
-| `←` `→` veya `A` `D` | Sağa sola dön |
-| `Boşluk` | Zıpla, havadayken çarpışma almazsın |
-| `P` | Duraklat ve devam et |
-| `R` | İnişi baştan başlat |
-| `Enter` | Açılış ekranından başlat |
-| Ekranın üst %35'ine dokun | Zıpla (mobil) |
-| Ekranın soluna / sağına dokun | Sola / sağa dön (mobil) |
-| Sağ üstteki üç düğme | Gece, Şafak, Tipi modunu değiştir |
+| `Left` `Right` or `A` `D` | Steer |
+| `Space` | Jump, you take no collision while airborne |
+| `P` | Pause and resume |
+| `R` | Restart the run |
+| `Enter` | Start from the title screen |
+| Tap the top 35% of the screen | Jump (mobile) |
+| Tap the left or right side | Steer (mobile) |
+| The three buttons, top right | Switch between Night, Dawn and Blizzard |
 
-## 🚀 Kendi bilgisayarında çalıştır
+## Run it on your own machine
 
 ```bash
 git clone https://github.com/umutseve4/yildiz-inisi-webgl.git
@@ -42,51 +42,55 @@ cd yildiz-inisi-webgl
 npm run serve      # http://localhost:4173
 ```
 
-Testleri de çalıştırmak istersen:
+If you want to run the tests as well:
 
 ```bash
 npm install
 npx playwright install --with-deps chromium
-npm test           # 155 statik assertion + 29 Chromium kabul testi
+npm test           # 155 static assertions plus 29 Chromium acceptance tests
 ```
 
-Üçüncü adım yok. `index.html` dosyasını çift tıklayıp doğrudan açman da yeterli, tek koşul internet bağlantısı çünkü three.js CDN'den geliyor.
+There is no third step. Double clicking `index.html` and opening it directly also works. The only requirement is an internet connection, because three.js comes from a CDN.
 
-## 🧩 Nasıl yapıldı
+## How it is built
 
-| Katman | Ne var |
+| Layer | What is there |
 |---|---|
-| Görsel | three.js 0.169.0, `InstancedMesh` ile ağaç, kaya, yıldız, kapı direkleri; `FogExp2` ile derinlik; 2400 parçacıklı kar |
-| Zemin | Tek `PlaneGeometry`, her karede yükseklik fonksiyonuna göre büküyor ve oyuncuyla birlikte kaydırıyor, sonsuz yamaç bu yüzden bellek yemiyor |
-| Pist üretimi | `mulberry32` tohumlu üreteç. Aynı tohum aynı pisti veriyor, testler bu yüzden deterministik |
-| Oyun mantığı | Render'dan tamamen ayrı, saf fonksiyonlar hâlinde `window.YI` altında. Node içinde tarayıcısız çalışıyor |
-| Test kancası | `window.__yi` üzerinden faz, kare sayacı, `forceCrash()` ve `collectStar()` |
-| Erişilebilirlik | Mod düğmelerinde `aria-pressed`, canvas'ta `aria-label`, `:focus-visible` odak halkası, `prefers-reduced-motion` desteği, WebGL kapalıysa açıklamalı yedek ekran |
+| Visuals | three.js 0.169.0, an `InstancedMesh` each for trees, rocks, stars and gate poles, `FogExp2` for depth, snow as 2400 particles |
+| Ground | One `PlaneGeometry`, bent every frame by a height function and scrolled along with the player, which is why an endless slope does not eat memory |
+| Course generation | A `mulberry32` seeded generator. The same seed gives the same course, which is what makes the tests deterministic |
+| Game logic | Fully separated from rendering, written as pure functions under `window.YI`. It runs inside Node with no browser at all |
+| Test hook | `window.__yi` exposes the phase, the frame counter, `forceCrash()` and `collectStar()` |
+| Accessibility | `aria-pressed` on the mode buttons, `aria-label` on the canvas, a `:focus-visible` focus ring, `prefers-reduced-motion` support, and an explanatory fallback screen when WebGL is unavailable |
 
-Depoda tek bir görsel, ses veya model dosyası yok. Ağaç bir koni, kaya bir ikosahedron, yıldız bir oktahedron, kayakçı bir kapsül. Bütün görünüm geometriden ve ışıktan geliyor.
+There is not one image, sound or model file in the repository. A tree is a cone, a rock is an icosahedron, a star is an octahedron, the skier is a capsule. The entire look comes from geometry and light.
 
-## 📊 Sayılar nereden geliyor
+## Where the numbers come from
 
-| Sayı | Kaynak |
+| Number | Source |
 |---|---|
-| 27.873 baytlık tek dosya | `wc -c index.html`, CI'da hem 122.880 bayt tavanına hem bu README'deki rakama karşı denetleniyor |
-| 155 statik assertion | `node tests/qa.mjs` çıktısı, CI 155 tabanının altına düşerse ve README ile uyuşmazsa hata veriyor |
-| 29 kabul testi | `npx playwright test`, gerçek Chromium'da SwiftShader WebGL ile, CI 29 tabanını ve README ile eşitliği koruyor |
-| 3 atmosfer modu | `YI.C.MODES` |
-| 1400 m zorluk doygunluğu | `YI.difficultyAt` |
+| 27,873 byte single file | `wc -c index.html`, checked in CI against both the 122,880 byte ceiling and the figure in this README |
+| 155 static assertions | the output of `node tests/qa.mjs`. CI fails if it drops below the 155 baseline or disagrees with this README |
+| 29 acceptance tests | `npx playwright test`, in real Chromium on SwiftShader WebGL. CI holds the 29 baseline and its equality with this README |
+| 3 atmosphere modes | `YI.C.MODES` |
+| 1400 m difficulty saturation | `YI.difficultyAt` |
 
-CI iki işi ayrı koşturuyor. `qa` işi assertion tabanını, tek dosya sözleşmesini (harici varlık yok, `http://` yok, three.js sürümü pinli), README rakamlarının gerçekle eşliğini ve README canlı bağlantı iddia ediyorsa o URL'nin gerçekten 200 döndüğünü denetliyor. `browser` işi Chromium indirip 29 kabul testini gerçekten oynatıyor. `pages` işi ise yalnızca `index.html` ve lisansı yayınlayıp dağıtımdan sonra canlı adrese duman testi atıyor.
+CI runs two jobs separately. The `qa` job checks the assertion baseline, the single file contract (no external assets, no `http://`, the three.js version pinned), the agreement between the README figures and reality, and, if the README claims a live link, that the URL really returns 200. The `browser` job downloads Chromium and actually plays through the 29 acceptance tests. The `pages` job publishes only `index.html` and the licence, then smoke tests the live address after the deployment.
 
-## 🚧 Neyi iddia etmiyorum
+## What I am not claiming
 
-- Skor kaydı yok. En iyi puan yalnızca sekme açık kaldığı sürece hafızada duruyor.
-- Ses yok.
-- Mobil dokunmatik kontroller çalışıyor ama asıl hedef klavye. Küçük ekranlarda HUD sıkışabilir.
-- three.js CDN'den yükleniyor, yani çevrimdışı açılmıyor.
-- Yalnızca Chromium'da test edildi. Firefox ve WebKit için kanıtım yok.
-- Çok oyunculu, seviye editörü, kayıt/yükleme gibi özellikler yok. Bu bir oturuşluk bir iniş.
-- FPS ölçümü yapılmadı, o yüzden performans rakamı vermiyorum.
+- No score persistence. The best score lives in memory only while the tab stays open.
+- No sound.
+- The mobile touch controls work, but the keyboard is the real target. The HUD can get cramped on small screens.
+- three.js loads from a CDN, so this does not open offline.
+- Tested in Chromium only. I have no evidence for Firefox or WebKit.
+- No multiplayer, no level editor, no save and load. This is a single sitting descent.
+- The frame rate was never measured, so I publish no performance figure.
+
+## A note on the language
+
+This README is in English. The game itself still speaks Turkish on screen, and that is deliberate rather than unfinished: the title, the HUD and the mode names are part of the piece. If that changes, the `pages` smoke test that greps the published page for the title has to change with it.
 
 ---
 
-MIT lisanslı. Umut Sever.
+MIT licensed. Umut Sever.
